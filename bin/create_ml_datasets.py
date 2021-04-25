@@ -17,10 +17,20 @@ import common
 from common import PATHS, BENCHMARKS_INFO
 
 
-TARGET_BENCHMARKS = ['leela']
+TARGET_BENCHMARKS = ['531.deepsjeng']
+PREDICTOR = 'TAGE8'
 HARD_BRS_FILE = 'top100'
-NUM_THREADS = 32
-PC_BITS = 30
+NUM_THREADS = 16
+PC_BITS = 15
+
+def read_branch_trace_loadtxt(trace_path):
+    struct_type = [
+        ('br_pc', np.uint64),
+        ('dir', np.uint8)]
+    record_dtype = np.dtype(struct_type, align=False)
+        
+    data = np.loadtxt(trace_path, delimiter=' ', dtype=record_dtype)
+    return data['br_pc'].copy(), data['dir'].copy()
 
 
 def read_branch_trace(trace_path):
@@ -72,37 +82,44 @@ def create_new_dataset(dataset_path, pcs, directions):
 def get_work_items():
     work_items = []    
     for benchmark in TARGET_BENCHMARKS:
-        hard_brs = common.read_hard_brs(benchmark, HARD_BRS_FILE)
+        # hard_brs = common.read_hard_brs(benchmark, HARD_BRS_FILE)
+        hard_brs = common.read_hard_brs_from_accuracy_files(benchmark, PREDICTOR)
         traces_dir = '{}/{}'.format(PATHS['branch_traces_dir'], benchmark)
         datasets_dir = '{}/{}'.format(PATHS['ml_datasets_dir'], benchmark)
         os.makedirs(datasets_dir, exist_ok=True)
-        for inp_info in BENCHMARKS_INFO[benchmark]['inputs']:
-            for simpoint_info in inp_info['simpoints']:
-                file_basename = '{}_{}_simpoint{}'.format(
-                    benchmark, inp_info['name'], simpoint_info['id'])
-                trace_path = '{}/{}_brtrace.bz2'.format(
-                    traces_dir, file_basename)
-                dataset_path = '{}/{}_dataset.hdf5'.format(
-                    datasets_dir, file_basename)
-                
-                if os.path.exists(dataset_path): continue
-                work_items.append((trace_path, dataset_path, hard_brs))
+        for trace in os.listdir(traces_dir):
+            trace_path = "{}/{}".format(traces_dir, trace)
+            dataset_path = "{}/{}_dataset.hdf5".format(
+                datasets_dir, trace.split(".champsimtrace")[0])
+            work_items.append((trace_path, dataset_path, hard_brs))
+        return work_items
+#        for inp_info in BENCHMARKS_INFO[benchmark]['inputs']:
+#            for simpoint_info in inp_info['simpoints']:
+#                file_basename = '{}_{}_simpoint{}'.format(
+#                    benchmark, inp_info['name'], simpoint_info['id'])
+#                trace_path = '{}/{}_brtrace.bz2'.format(
+#                    traces_dir, file_basename)
+#                dataset_path = '{}/{}_dataset.hdf5'.format(
+#                    datasets_dir, file_basename)
+#                
+#                if os.path.exists(dataset_path): continue
+#                work_items.append((trace_path, dataset_path, hard_brs))
     return work_items
 
 
 def gen_dataset(trace_path, dataset_path, hard_brs):
     print('reading file', trace_path)
-    pcs, directions = read_branch_trace(trace_path)
+    pcs, directions = read_branch_trace_loadtxt(trace_path)
 
     print('Creating output file', dataset_path)
     fptr = create_new_dataset(dataset_path, pcs, directions)
 
     for br_pc in hard_brs:
-        print('processing branch {}'.format(hex(br_pc)))
+        print('processing branch {}'.format((br_pc)))
         #find indicies of hard branches
         trace_br_indices = np.argwhere(pcs == br_pc).squeeze(axis=1)
         fptr.create_dataset(
-            'br_indices_{}'.format(hex(br_pc)),
+            'br_indices_{}'.format((br_pc)),
             data=trace_br_indices,
             compression='gzip',
             compression_opts=9,
@@ -111,8 +128,8 @@ def gen_dataset(trace_path, dataset_path, hard_brs):
             np.bitwise_and(pcs == br_pc, directions == 1))
         num_not_taken = np.count_nonzero(
             np.bitwise_and(pcs == br_pc, directions == 0))
-        fptr.attrs['num_taken_{}'.format(hex(br_pc))] = num_taken
-        fptr.attrs['num_not_taken_{}'.format(hex(br_pc))] = num_not_taken
+        fptr.attrs['num_taken_{}'.format((br_pc))] = num_taken
+        fptr.attrs['num_not_taken_{}'.format((br_pc))] = num_not_taken
 
 
 def main():

@@ -5,11 +5,12 @@ import os
 import common
 from common import PATHS, BENCHMARKS_INFO, ML_INPUT_PARTIONS
 
-TARGET_BENCHMARKS = ['leela']
+TARGET_BENCHMARKS = ['531.deepsjeng']
 TAGE_CONFIG_NAME = 'tagescl64'
 NUM_BRS_TO_PRINT = 100
 PRODUCE_HARD_BR_FILES = True
-HARD_BR_FILE_NAME = 'top100'
+HARD_BR_FILE_NAME = 'tage8'
+PREDICTOR_TO_GET_H2Ps = 'TAGE8'
 
 BRANCH_STATS_TEMPLATE = (
     "*****    {line_name: <15.15}{weighted_specifier:<12.12}"
@@ -175,11 +176,18 @@ def get_input_set_stats(benchmark, list_inputs, brs=None):
     stats[inp].print_detailed_summary(brs)
   return brs
 
+def get_brs_from_measure_accuracy_files(benchmark, predictor):
+    common.read_hard_brs_from_accuracy_files(benchmark, predictor)
+    return brs
+   
 def main():
     for benchmark in TARGET_BENCHMARKS:
-        validation_inputs = ML_INPUT_PARTIONS[benchmark]['validation_set']
-        test_inputs = ML_INPUT_PARTIONS[benchmark]['test_set']
-        brs = get_input_set_stats(benchmark, validation_inputs)
+        # my code
+        brs = get_brs_from_measure_accuracy_files(benchmark, PREDICTOR_TO_GET_H2Ps)
+        # BranchNet code
+        #validation_inputs = ML_INPUT_PARTIONS[benchmark]['validation_set']
+        #test_inputs = ML_INPUT_PARTIONS[benchmark]['test_set']
+        #brs = get_input_set_stats(benchmark, validation_inputs)
 
         # Uncomment this line to observe test set stats using the selected
         # branches.
