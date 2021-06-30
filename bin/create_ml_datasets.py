@@ -17,11 +17,11 @@ import common
 from common import PATHS, BENCHMARKS_INFO
 
 
-TARGET_BENCHMARKS = ['531.deepsjeng']
+TARGET_BENCHMARKS = ['505.mcf']
 PREDICTOR = 'TAGE8'
 HARD_BRS_FILE = 'top100'
 NUM_THREADS = 16
-PC_BITS = 15
+PC_BITS = 11
 
 def read_branch_trace_loadtxt(trace_path):
     struct_type = [

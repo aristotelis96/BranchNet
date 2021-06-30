@@ -13,7 +13,6 @@ __paths_file__ = __env_dir__ + '/paths.yaml'
 __benchmarks_file__ = __env_dir__ + '/benchmarks.yaml'
 __ml_input_partitions__ = __env_dir__ + '/ml_input_partitions.yaml'
 
-
 assert os.path.exists(__paths_file__), (
   ('Expecting a paths.yaml file at {}. You have to create one following '
    'the format of paths_example.yaml in the same directory').format(__paths_file__))
@@ -179,7 +178,7 @@ def get_brs_from_accuracy_file(path_to_file):
             brs.append(h2p)
     return brs
 
-def read_hard_brs_from_accuracy_files(benchmark, predictor):
+def read_hard_brs_from_accuracy_files(benchmark, predictor='TAGE8'):
     # Find common H2P among all files    
     # Read files except ref
     measure_accuracy_files = filter(
@@ -200,10 +199,10 @@ def read_hard_brs_from_accuracy_files(benchmark, predictor):
         for brs_in_file in brs_in_files:
             if br in brs_in_file:
                 occurances+=1
-            if(occurances==3):
+            if(occurances>=len([x for x in os.listdir("{}/{}/{}".format(PATHS['measure_H2P_dir'], predictor, benchmark)) if "ref" not in x])*0.4):
                 brs.add(br)
                 continue
-    return list(brs)
+    return sorted(list(brs))
 
 def read_hard_brs(benchmark, name):
     filepath = '{}/{}_{}'.format( PATHS['hard_brs_dir'], benchmark, name)
